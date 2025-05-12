@@ -1,0 +1,35 @@
+[toolchain]
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+dephy_ncn = "3AGd4bShjwtx7vNJHJowU6UmRdrjqrchL1Zu8smph5pk"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "bun run -b ts-mocha ./tsconfig.json -t 1000000 tests/*.test.ts"
+
+[test]
+startup_wait = 3000
+shutdown_wait = 2000
+upgradeable = false
+
+[test.validator]
+slots_per_epoch = "32"
+
+[[test.genesis]]
+address = "RestkWeAVL8fRGgzhfeoqFhsqKRchg6aa1XrcH96z4Q"
+program = "./tests/fixtures/jito_restaking_program.so"
+
+[[test.genesis]]
+address = "Vau1t6sLNxnzB7ZDsef8TLbPLfyZMYXH8WTNqUdm9g8"
+program = "./tests/fixtures/jito_vault_program.so"
