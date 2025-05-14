@@ -9,7 +9,7 @@ declare_id!("BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9");
 pub mod dephy_rewards {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize_rewards_state(ctx: Context<InitializeRewardsState>) -> Result<()> {
         let rewards_state = &mut ctx.accounts.rewards_state;
         rewards_state.authority = ctx.accounts.authority.key();
         rewards_state.rewards_mint = ctx.accounts.rewards_mint.key();
@@ -32,10 +32,23 @@ pub mod dephy_rewards {
         ]);
         let computed_root = recompute_root(leaf.to_bytes(), &args.proof, args.index);
 
-        require!(
-            computed_root == ctx.accounts.rewards_state.merkle_root,
-            DephyRewardsError::InvalidProof
-        );
+        match ctx.accounts.rewards_state.merkle_root {
+            MerkleRoot::Inplace { hash: merkle_root } => {
+                require!(computed_root == merkle_root, DephyRewardsError::InvalidProof);
+            },
+            MerkleRoot::External { pubkey, offset } => {
+                let merkle_root_account = ctx.accounts.maybe_merkle_root_account.as_deref().unwrap();
+                require_keys_eq!(pubkey, merkle_root_account.key(), DephyRewardsError::InvalidProof);
+
+                let start = offset as usize;
+                if let Some(merkle_root_slice) = merkle_root_account.data.borrow().get(start..start+32) {
+                    let merkle_root: [u8; 32] = merkle_root_slice.try_into().unwrap();
+                    require!(computed_root == merkle_root, DephyRewardsError::InvalidProof);
+                } else {
+                    return Err(DephyRewardsError::InvalidProof.into());
+                }
+            },
+        }
 
         let claim_state = &mut ctx.accounts.claim_state;
 
@@ -70,7 +83,7 @@ pub mod dephy_rewards {
 }
 
 #[derive(Accounts)]
-pub struct Initialize<'info> {
+pub struct InitializeRewardsState<'info> {
     #[account(init, payer = payer, space = RewardsState::DISCRIMINATOR.len() + RewardsState::INIT_SPACE)]
     pub rewards_state: Account<'info, RewardsState>,
     #[account()]
@@ -103,7 +116,7 @@ pub struct UpdateMerkleRoot<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateMerkleRootArgs {
-    merkle_root: [u8; 32],
+    merkle_root: MerkleRoot,
 }
 
 #[derive(Accounts)]
@@ -126,6 +139,8 @@ pub struct ClaimRewards<'info> {
     pub claim_state: Account<'info, ClaimState>,
     #[account(mut, token::mint = rewards_mint.key(), token::token_program = rewards_token_program)]
     pub beneficiary_token_account: InterfaceAccount<'info, TokenAccount>,
+    /// CHECK:
+    pub maybe_merkle_root_account: Option<UncheckedAccount<'info>>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub rewards_token_program: Interface<'info, TokenInterface>,
@@ -139,22 +154,17 @@ pub struct ClaimRewardsArgs {
     pub proof: Vec<[u8; 32]>,
 }
 
-// from spl-merkle-tree-reference
-type Node = [u8; 32];
 
-pub fn recompute_root(mut leaf: Node, proof: &[Node], index: u32) -> Node {
-    for (i, s) in proof.iter().enumerate() {
-        if index >> i & 1 == 0 {
-            let res = keccak::hashv(&[&leaf, s.as_ref()]);
-            leaf.copy_from_slice(res.as_ref());
-        } else {
-            let res = keccak::hashv(&[s.as_ref(), &leaf]);
-            leaf.copy_from_slice(res.as_ref());
-        }
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
+pub enum MerkleRoot {
+    Inplace {
+        hash: [u8; 32]
+    },
+    External {
+        pubkey: Pubkey,
+        offset: u64,
     }
-    leaf
 }
-
 
 #[account]
 #[derive(InitSpace)]
@@ -162,7 +172,7 @@ pub struct RewardsState {
     pub authority: Pubkey,
     pub rewards_mint: Pubkey,
     pub rewards_token_account: Pubkey,
-    pub merkle_root: [u8; 32],
+    pub merkle_root: MerkleRoot,
 }
 
 #[account]
@@ -180,4 +190,21 @@ pub enum DephyRewardsError {
     InvalidProof,
     #[msg("Already claimed")]
     AlreadyClaimed,
+}
+
+
+// from spl-merkle-tree-reference
+type Node = [u8; 32];
+
+pub fn recompute_root(mut leaf: Node, proof: &[Node], index: u32) -> Node {
+    for (i, s) in proof.iter().enumerate() {
+        if index >> i & 1 == 0 {
+            let res = keccak::hashv(&[&leaf, s.as_ref()]);
+            leaf.copy_from_slice(res.as_ref());
+        } else {
+            let res = keccak::hashv(&[s.as_ref(), &leaf]);
+            leaf.copy_from_slice(res.as_ref());
+        }
+    }
+    leaf
 }

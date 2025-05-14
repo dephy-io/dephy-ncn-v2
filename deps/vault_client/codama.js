@@ -10,14 +10,6 @@ export default {
         {
           crateFolder: 'deps/vault_client',
           formatCode: true,
-          traitOptions: {
-            scalarEnumDefaults: [
-              'anchor_lang::InitSpace',
-            ],
-            structDefaults: [
-              'anchor_lang::InitSpace',
-            ],
-          },
         }
       ]
     }

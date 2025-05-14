@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use anchor_lang::InitSpace;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
@@ -62,7 +61,7 @@ impl InitializeNcn {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, InitSpace)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitializeNcnInstructionData {
     discriminator: u8,

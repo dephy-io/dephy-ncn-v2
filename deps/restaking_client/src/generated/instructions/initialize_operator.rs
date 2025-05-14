@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use anchor_lang::InitSpace;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
@@ -69,7 +68,7 @@ impl InitializeOperator {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, InitSpace)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitializeOperatorInstructionData {
     discriminator: u8,
@@ -87,7 +86,7 @@ impl Default for InitializeOperatorInstructionData {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, InitSpace)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct InitializeOperatorInstructionArgs {
     pub operator_fee_bps: u16,

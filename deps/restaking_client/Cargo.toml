@@ -6,7 +6,9 @@ edition = "2021"
 [features]
 serde = []
 anchor = []
-anchor-idl-build = []
+anchor-idl-build = [
+    "anchor-lang/idl-build",
+]
 fetch = []
 
 [dependencies]

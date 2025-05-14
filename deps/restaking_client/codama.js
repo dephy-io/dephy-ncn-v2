@@ -10,14 +10,6 @@ export default {
         {
           crateFolder: 'deps/restaking_client',
           formatCode: true,
-          traitOptions: {
-            scalarEnumDefaults: [
-              'anchor_lang::InitSpace',
-            ],
-            structDefaults: [
-              'anchor_lang::InitSpace',
-            ],
-          },
         }
       ]
     }

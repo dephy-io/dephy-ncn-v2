@@ -27,3 +27,15 @@ pub mod types {
 pub mod programs {
     pub use super::generated::programs::*;
 }
+
+
+#[cfg(feature = "anchor")]
+#[derive(Debug, Clone)]
+pub struct JitoRestaking;
+
+#[cfg(feature = "anchor")]
+impl anchor_lang::Id for JitoRestaking {
+    fn id() -> anchor_lang::prelude::Pubkey {
+        JITO_RESTAKING_ID
+    }
+}

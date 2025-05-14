@@ -21,7 +21,6 @@ describe("dephy-rewards", () => {
     dephyRewards.programId
   );
   
-  // For rewards token account
   const rewardsTokenAccount = spl.getAssociatedTokenAddressSync(
     rewardsMintKeypair.publicKey,
     rewardsVault,
@@ -31,7 +30,6 @@ describe("dephy-rewards", () => {
   // Test users
   const userCount = 5
   const users = new Array(userCount).fill(0).map(() => web3.Keypair.generate())
-  const userTokenAccounts = users.map(user => spl.getAssociatedTokenAddressSync(rewardsMintKeypair.publicKey, user.publicKey))
 
   const userRewards = users.map((user, i) => ({
     user: user.publicKey,
@@ -50,9 +48,9 @@ describe("dephy-rewards", () => {
     );
   });
 
-  it("Is initialized!", async () => {
+  it("initialize rewards state", async () => {
     const tx = await dephyRewards.methods
-      .initialize()
+      .initializeRewardsState()
       .accounts({
         rewardsState: rewardsStateKeypair.publicKey,
         authority: authority.publicKey,
@@ -77,7 +75,9 @@ describe("dephy-rewards", () => {
 
     const tx = await dephyRewards.methods
       .updateMerkleRoot({
-        merkleRoot
+        merkleRoot: {
+          inplace: { hash: merkleRoot }
+        }
       })
       .accounts({
         rewardsState: rewardsStateKeypair.publicKey,
@@ -89,7 +89,7 @@ describe("dephy-rewards", () => {
     console.log("Update merkle root transaction signature", tx);
     
     const rewardsState = await dephyRewards.account.rewardsState.fetch(rewardsStateKeypair.publicKey);
-    assert.deepEqual(Array.from(rewardsState.merkleRoot), merkleRoot);
+    assert.deepEqual(Array.from(rewardsState.merkleRoot.inplace.hash), merkleRoot);
   });
 
   it("mint rewards tokens to rewards account", async () => {
@@ -144,11 +144,11 @@ describe("dephy-rewards", () => {
       })
       .accounts({
         rewardsState: rewardsStateKeypair.publicKey,
-        authority: authority.publicKey,
         rewardsMint: rewardsMintKeypair.publicKey,
         rewardsTokenAccount: rewardsTokenAccount,
         owner: user.publicKey,
         beneficiaryTokenAccount: userTokenAccount,
+        maybeMerkleRootAccount: null,
         payer: provider.wallet.publicKey,
         rewardsTokenProgram: spl.TOKEN_PROGRAM_ID,
       })
@@ -181,11 +181,11 @@ describe("dephy-rewards", () => {
         })
         .accounts({
           rewardsState: rewardsStateKeypair.publicKey,
-          authority: authority.publicKey,
           rewardsMint: rewardsMintKeypair.publicKey,
           rewardsTokenAccount: rewardsTokenAccount,
           owner: user.publicKey,
           beneficiaryTokenAccount: userTokenAccount,
+          maybeMerkleRootAccount: null,
           payer: provider.wallet.publicKey,
           rewardsTokenProgram: spl.TOKEN_PROGRAM_ID,
         })

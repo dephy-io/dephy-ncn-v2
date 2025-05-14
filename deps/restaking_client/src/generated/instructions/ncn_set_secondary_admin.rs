@@ -6,7 +6,6 @@
 //!
 
 use crate::generated::types::NcnAdminRole;
-use anchor_lang::InitSpace;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
@@ -58,7 +57,7 @@ impl NcnSetSecondaryAdmin {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, InitSpace)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NcnSetSecondaryAdminInstructionData {
     discriminator: u8,
@@ -76,7 +75,7 @@ impl Default for NcnSetSecondaryAdminInstructionData {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, InitSpace)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NcnSetSecondaryAdminInstructionArgs {
     pub ncn_admin_role: NcnAdminRole,
