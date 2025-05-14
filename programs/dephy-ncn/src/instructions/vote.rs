@@ -9,6 +9,7 @@ use jito_vault_client::{
 };
 
 use crate::{
+    constants::*,
     error::DephyNcnError,
     state::{BallotBox, Config, VoterState},
 };
@@ -21,9 +22,9 @@ pub struct VoteArgs {
 #[derive(Accounts)]
 pub struct Vote<'info> {
     pub config: Account<'info, Config>,
-    #[account(mut, seeds = [b"ballot_box", config.key().as_ref()], bump)]
+    #[account(mut, seeds = [SEED_BALLOT_BOX, config.key().as_ref()], bump)]
     pub ballot_box: Account<'info, BallotBox>,
-    #[account(mut, seeds = [b"voter_state", config.key().as_ref(), operator.key().as_ref()], bump)]
+    #[account(mut, seeds = [SEED_VOTER_STATE, config.key().as_ref(), operator.key().as_ref()], bump)]
     pub voter_state: Account<'info, VoterState>,
     pub operator_admin: Signer<'info>,
     /// CHECK:
@@ -33,10 +34,10 @@ pub struct Vote<'info> {
     #[account(address = voter_state.operator)]
     pub operator: UncheckedAccount<'info>,
     /// CHECK:
-    #[account(seeds = [b"operator_vault_ticket", operator.key().as_ref(), vault.key().as_ref()], bump, seeds::program = JITO_RESTAKING_ID)]
+    #[account(seeds = [SEED_OPERATOR_VAULT_TICKET, operator.key().as_ref(), vault.key().as_ref()], bump, seeds::program = JITO_RESTAKING_ID)]
     pub operator_vault_ticket: UncheckedAccount<'info>,
     /// CHECK:
-    #[account(seeds = [b"vault_operator_delegation", vault.key().as_ref(), operator.key().as_ref()], bump, seeds::program = JITO_VAULT_ID)]
+    #[account(seeds = [SEED_VAULT_OPERATOR_DELEGATION, vault.key().as_ref(), operator.key().as_ref()], bump, seeds::program = JITO_VAULT_ID)]
     pub vault_operator_delegation: UncheckedAccount<'info>,
 }
 

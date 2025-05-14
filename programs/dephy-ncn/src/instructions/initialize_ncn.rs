@@ -1,26 +1,30 @@
-use crate::state::{BallotBox, Config};
 use anchor_lang::prelude::*;
 use jito_restaking_client::{programs::JITO_RESTAKING_ID, JitoRestaking};
+
+use crate::{
+    constants::*,
+    state::{BallotBox, Config},
+};
 
 #[derive(Accounts)]
 pub struct InitializeNcn<'info> {
     /// CHECK:
-    #[account(mut, seeds = [b"config"], bump, seeds::program = JITO_RESTAKING_ID)]
+    #[account(mut, seeds = [SEED_CONFIG], bump, seeds::program = JITO_RESTAKING_ID)]
     pub jito_restaking_config: UncheckedAccount<'info>,
     pub base: Signer<'info>,
-    #[account(mut, seeds = [b"ncn", base.key().as_ref()], bump, seeds::program = JITO_RESTAKING_ID)]
+    #[account(mut, seeds = [SEED_NCN, base.key().as_ref()], bump, seeds::program = JITO_RESTAKING_ID)]
     pub ncn: SystemAccount<'info>,
     #[account(init, payer = payer,
         space = Config::DISCRIMINATOR.len() + Config::INIT_SPACE,
-        seeds = [b"dephy_ncn", ncn.key().as_ref()], bump
+        seeds = [SEED_DEPHY_NCN, ncn.key().as_ref()], bump
     )]
     pub config: Account<'info, Config>,
     #[account(init, payer = payer,
         space = BallotBox::DISCRIMINATOR.len() + BallotBox::INIT_SPACE,
-        seeds = [b"ballot_box", config.key().as_ref()], bump
+        seeds = [SEED_BALLOT_BOX, config.key().as_ref()], bump
     )]
     pub ballot_box: Account<'info, BallotBox>,
-    #[account(mut, seeds = [b"ncn_admin", ncn.key().as_ref()], bump)]
+    #[account(mut, seeds = [SEED_NCN_ADMIN, ncn.key().as_ref()], bump)]
     pub ncn_admin: SystemAccount<'info>,
     pub authority: Signer<'info>,
     #[account(mut)]
@@ -54,7 +58,7 @@ pub fn handle_initialize_ncn(ctx: Context<InitializeNcn>) -> Result<()> {
         },
     )
     .invoke_signed(&[&[
-        b"ncn_admin",
+        SEED_NCN_ADMIN,
         ctx.accounts.ncn.key().as_ref(),
         &[ctx.bumps.ncn_admin],
     ]])?;

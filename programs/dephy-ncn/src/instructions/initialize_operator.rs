@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 use jito_restaking_client::JitoRestaking;
 
-use crate::state::{Config, VoterState};
+use crate::{
+    constants::*,
+    state::{Config, VoterState},
+};
 
 #[derive(Accounts)]
 pub struct InitializeOperator<'info> {
@@ -10,21 +13,21 @@ pub struct InitializeOperator<'info> {
     /// CHECK:
     #[account(mut, address = config.ncn)]
     pub ncn: UncheckedAccount<'info>,
-    #[account(seeds = [b"ncn_admin", ncn.key().as_ref()], bump)]
+    #[account(seeds = [SEED_NCN_ADMIN, ncn.key().as_ref()], bump)]
     pub ncn_admin: SystemAccount<'info>,
     /// CHECK:
     #[account(mut)]
     pub operator: UncheckedAccount<'info>,
     /// CHECK:
-    #[account(seeds = [b"config"], bump, seeds::program = jito_restaking_program)]
+    #[account(seeds = [SEED_CONFIG], bump, seeds::program = jito_restaking_program)]
     pub jito_restaking_config: UncheckedAccount<'info>,
     /// CHECK:
-    #[account(mut, seeds = [b"ncn_operator_state", ncn.key.as_ref(), operator.key.as_ref()], seeds::program = jito_restaking_program, bump)]
+    #[account(mut, seeds = [SEED_NCN_OPERATOR_STATE, ncn.key.as_ref(), operator.key.as_ref()], seeds::program = jito_restaking_program, bump)]
     pub ncn_operator_state: UncheckedAccount<'info>,
     #[account(
         init, payer = payer,
         space = VoterState::DISCRIMINATOR.len() + VoterState::INIT_SPACE,
-        seeds = [b"voter_state", config.key().as_ref(), operator.key().as_ref()], bump
+        seeds = [SEED_VOTER_STATE, config.key().as_ref(), operator.key().as_ref()], bump
     )]
     pub voter_state: Account<'info, VoterState>,
     #[account(mut)]
@@ -47,7 +50,7 @@ pub fn handle_initialize_operator(ctx: Context<InitializeOperator>) -> Result<()
         },
     )
     .invoke_signed(&[&[
-        b"ncn_admin",
+        SEED_NCN_ADMIN,
         ctx.accounts.ncn.key().as_ref(),
         &[ctx.bumps.ncn_admin],
     ]])?;

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use jito_restaking_client::JitoRestaking;
 
-use crate::state::Config;
+use crate::{constants::*, state::Config};
 
 #[derive(Accounts)]
 pub struct InitializeVault<'info> {
@@ -15,14 +15,14 @@ pub struct InitializeVault<'info> {
     /// CHECK:
     #[account(
         mut,
-        seeds = [b"ncn_vault_ticket", ncn.key.as_ref(), vault.key.as_ref()],
+        seeds = [SEED_NCN_VAULT_TICKET, ncn.key().as_ref(), vault.key().as_ref()],
         seeds::program = jito_restaking_program, bump
     )]
     pub ncn_vault_ticket: UncheckedAccount<'info>,
     /// CHECK:
-    #[account(seeds = [b"config"], bump, seeds::program = jito_restaking_program)]
+    #[account(seeds = [SEED_CONFIG], bump, seeds::program = jito_restaking_program)]
     pub jito_restaking_config: UncheckedAccount<'info>,
-    #[account(seeds = [b"ncn_admin", ncn.key().as_ref()], bump)]
+    #[account(seeds = [SEED_NCN_ADMIN, ncn.key().as_ref()], bump)]
     pub ncn_admin: SystemAccount<'info>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -44,7 +44,7 @@ pub fn handle_initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
         },
     )
     .invoke_signed(&[&[
-        b"ncn_admin",
+        SEED_NCN_ADMIN,
         ctx.accounts.ncn.key().as_ref(),
         &[ctx.bumps.ncn_admin],
     ]])?;

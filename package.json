@@ -1,7 +1,9 @@
 {
   "license": "ISC",
   "type": "module",
-  "scripts": {},
+  "scripts": {
+    "dephy-ncn": "bun -b run scripts/cli.ts"
+  },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1"
   },
