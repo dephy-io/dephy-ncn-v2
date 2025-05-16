@@ -1,0 +1,290 @@
+import { Command } from '@commander-js/extra-typings';
+import * as anchor from '@coral-xyz/anchor';
+import { AnchorProvider, Program, Wallet, BN, web3 } from '@coral-xyz/anchor';
+import * as spl from '@solana/spl-token';
+import { DephyRewards } from '../target/types/dephy_rewards';
+import { readFileSync } from 'fs';
+import { buildRewardsTree } from "../tests/rewards-tree";
+import path from "path";
+import os from "os";
+
+
+export function loadKey(filepath: string) {
+  return web3.Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(filepath, 'utf8'))));
+}
+
+export function getProvider(rpcUrl: string, keypairPath: string) {
+  const wallet = new Wallet(loadKey(keypairPath));
+  const connection = new web3.Connection(rpcUrl);
+  const provider = new AnchorProvider(connection, wallet, {});
+  anchor.setProvider(provider);
+  return provider;
+}
+
+const cli = new Command();
+
+let provider: AnchorProvider;
+let dephyRewards: Program<DephyRewards>;
+
+
+cli
+  .name('dephy-rewards-cli')
+  .description('Dephy Rewards CLI')
+  .version('0.1.0')
+  .requiredOption('-k, --keypair <path>', 'Authority keypair JSON file path', path.join(os.homedir(), '.config', 'solana', 'id.json'))
+  .requiredOption('-r, --rpc <url>', 'Solana RPC URL', 'http://127.0.0.1:8899')
+  .hook('preAction', (thisCmd) => {
+    const { rpc, keypair } = thisCmd.opts();
+    if (rpc && keypair) {
+      provider = getProvider(rpc, keypair);
+      dephyRewards = anchor.workspace.DephyRewards;
+    }
+  });
+
+cli.command('initialize-rewards-state')
+  .description('Initialize the rewards state')
+  .requiredOption('-m, --mint <pubkey>', 'Rewards mint account pubkey')
+  .action(async (opts) => {
+    try {
+      const mintPubkey = new web3.PublicKey(opts.mint);
+      const stateKeypair = web3.Keypair.generate();
+      const mintAccount = await provider.connection.getAccountInfo(mintPubkey);
+
+      const tx = await dephyRewards.methods
+        .initializeRewardsState()
+        .accounts({
+          rewardsState: stateKeypair.publicKey,
+          authority: provider.publicKey,
+          rewardsMint: mintPubkey,
+          payer: provider.publicKey,
+          rewardsTokenProgram: mintAccount.owner,
+        })
+        .signers([stateKeypair])
+        .rpc();
+
+      console.log('Rewards state initialized:', stateKeypair.publicKey.toString());
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to initialize rewards state:', err);
+    }
+  });
+
+cli.command('update-merkle-root')
+  .description('Update the merkle root for rewards distribution')
+  .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
+  .requiredOption('--root <hash>', 'Merkle root hash as a hex string')
+  .action(async (opts) => {
+    try {
+      const statePubkey = new web3.PublicKey(opts.state);
+      const merkleRoot = Uint8Array.from(Buffer.from(opts.root, 'hex'))
+      if (merkleRoot.length !== 32) {
+        throw new Error('Merkle root must be 32 bytes (64 hex chars)')
+      }
+
+      const tx = await dephyRewards.methods
+        .updateMerkleRoot({
+          merkleRoot: {
+            inplace: {
+              hash: Array.from(merkleRoot)
+            }
+          }
+        })
+        .accounts({
+          rewardsState: statePubkey,
+          authority: provider.publicKey,
+        })
+        .rpc();
+
+      console.log('Merkle root updated');
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to update merkle root:', err);
+    }
+  });
+
+cli.command('update-merkle-root-external')
+  .description('Update the merkle root for rewards distribution')
+  .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
+  .requiredOption('--address <pubkey>', 'External merkle root pubkey')
+  .requiredOption('--offset <offset>', 'External merkle root offset')
+  .action(async (opts) => {
+    try {
+      const statePubkey = new web3.PublicKey(opts.state);
+      const externalPubkey = new web3.PublicKey(opts.address);
+      const externalOffset = new BN(opts.offset);
+
+      const tx = await dephyRewards.methods
+        .updateMerkleRoot({
+          merkleRoot: {
+            external: {
+              pubkey: externalPubkey,
+              offset: externalOffset,
+            }
+          }
+        })
+        .accounts({
+          rewardsState: statePubkey,
+          authority: provider.publicKey,
+        })
+        .rpc();
+
+      console.log('Merkle root updated');
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to update merkle root:', err);
+    }
+  });
+
+
+cli.command('fund-rewards')
+  .description('Fund rewards')
+  .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
+  .requiredOption('-a, --amount <amount>', 'Amount to fund')
+  .action(async (opts) => {
+    try {
+      const rewardsStatePubkey = new web3.PublicKey(opts.state);
+      const amount = new BN(opts.amount);
+      const rewardsState = await dephyRewards.account.rewardsState.fetch(rewardsStatePubkey);
+      const rewardsMintAccount = await provider.connection.getAccountInfo(rewardsState.rewardsMint)
+      const rewardsMint = await spl.getMint(
+        provider.connection,
+        rewardsState.rewardsMint,
+        undefined,
+        rewardsMintAccount.owner,
+      )
+      const sourceAccount = spl.getAssociatedTokenAddressSync(
+        rewardsState.rewardsMint,
+        provider.publicKey,
+        true,
+        rewardsMintAccount.owner,
+      )
+
+      const tx = await spl.transferChecked(
+        provider.connection,
+        provider.wallet.payer,
+        sourceAccount,
+        rewardsState.rewardsMint,
+        rewardsState.rewardsTokenAccount,
+        provider.publicKey,
+        amount.toNumber(),
+        rewardsMint.decimals,
+        undefined,
+        undefined,
+        rewardsMintAccount.owner,
+      )
+
+      console.log('Rewards funded');
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to fund rewards:', err);
+    }
+  });
+
+
+cli.command('claim-rewards')
+  .description('Claim rewards for a user')
+  .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
+  .requiredOption('--rewards <path>', 'Path to rewards file')
+  .option('-b, --beneficiary <pubkey>', 'Beneficiary account pubkey')
+  .action(async (opts) => {
+    try {
+      const rewardsStatePubkey = new web3.PublicKey(opts.state);
+      const beneficiary = opts.beneficiary ? new web3.PublicKey(opts.beneficiary) : provider.publicKey;
+      const rewards = JSON.parse(readFileSync(opts.rewards, 'utf8'));
+      const rewardsNodes: Parameters<typeof buildRewardsTree>[0] = rewards.map(({user, amount}) => ({
+        user: new web3.PublicKey(user),
+        amount: BigInt(amount)
+      }));
+      if (rewardsNodes.length == 0) {
+        console.error('No rewards found');
+        process.exit(1)
+      }
+
+      const rewardsTree = buildRewardsTree(rewardsNodes);
+      const index = rewardsNodes.findIndex(({user}) => user.equals(provider.publicKey));
+      const proof = rewardsTree.getProof(index).proof.map(b => Array.from(b));
+      const { user, amount } = rewardsNodes[index]
+      console.log('rewards', user.toString(), amount)
+      const totalRewards = new BN(amount.toString())
+
+      const rewardsState = await dephyRewards.account.rewardsState.fetch(rewardsStatePubkey);
+      const maybeMerkleRootAccount = rewardsState.merkleRoot.external ? rewardsState.merkleRoot.external.pubkey : null;
+
+      const rewardsMint = await provider.connection.getAccountInfo(rewardsState.rewardsMint)
+      const rewardsTokenAccount = await spl.getAccount(
+        provider.connection,
+        rewardsState.rewardsTokenAccount,
+        undefined,
+        rewardsMint.owner,
+      )
+      console.log('rewardsTokenAccount', rewardsTokenAccount.address.toString(), rewardsTokenAccount.amount)
+
+      const beneficiaryTokenAccountPubkey = spl.getAssociatedTokenAddressSync(
+        rewardsState.rewardsMint,
+        beneficiary,
+        true,
+        rewardsMint.owner,
+      )
+
+      const beneficiaryTokenAccount = await provider.connection.getAccountInfo(beneficiaryTokenAccountPubkey)
+      console.log('beneficiaryTokenAccount', beneficiaryTokenAccountPubkey.toString())
+      if (!beneficiaryTokenAccount) {
+        await spl.createAssociatedTokenAccountIdempotent(
+          provider.connection,
+          provider.wallet.payer,
+          rewardsState.rewardsMint,
+          beneficiary,
+          undefined,
+          rewardsMint.owner
+        )
+      }
+
+      const tx = await dephyRewards.methods
+        .claimRewards({
+          index,
+          totalRewards,
+          proof
+        })
+        .accounts({
+          rewardsState: rewardsStatePubkey,
+          rewardsMint: rewardsState.rewardsMint,
+          rewardsTokenAccount: rewardsState.rewardsTokenAccount,
+          owner: user,
+          beneficiaryTokenAccount: beneficiaryTokenAccountPubkey,
+          maybeMerkleRootAccount,
+          payer: provider.publicKey,
+          rewardsTokenProgram: rewardsMint.owner,
+        })
+        .rpc();
+
+      console.log('Rewards claimed successfully');
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to claim rewards:', err);
+    }
+  });
+
+cli.command('calc-rewards-root')
+  .description('Calculate the rewards root hash')
+  .requiredOption('--rewards <path>', 'Path to rewards file')
+  .action(async (opts) => {
+    try {
+      const rewards = JSON.parse(readFileSync(opts.rewards, 'utf8'));
+      const rewardsNodes = rewards.map(({user, amount}) => ({
+        user: new web3.PublicKey(user),
+        amount: BigInt(amount)
+      }));
+      if (rewardsNodes.length == 0) {
+        console.error('No rewards found');
+        process.exit(1)
+      }
+
+      const rewardsTree = buildRewardsTree(rewardsNodes);
+      const rewardsRoot = rewardsTree.getRoot();
+      console.log('Rewards root:', rewardsRoot.toHex());
+    } catch (err) {
+      console.error('Failed to calculate rewards root:', err);
+    }
+  });
+
+cli.parseAsync(process.argv).catch(console.error);

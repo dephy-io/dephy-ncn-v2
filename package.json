@@ -2,7 +2,8 @@
   "license": "ISC",
   "type": "module",
   "scripts": {
-    "dephy-ncn": "bun -b run scripts/cli.ts"
+    "dephy-ncn": "bun -b run scripts/cli.ts",
+    "dephy-rewards": "bun -b run scripts/rewards_cli.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1"
