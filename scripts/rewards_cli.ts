@@ -1,25 +1,14 @@
 import { Command } from '@commander-js/extra-typings';
 import * as anchor from '@coral-xyz/anchor';
-import { AnchorProvider, Program, Wallet, BN, web3 } from '@coral-xyz/anchor';
+import { AnchorProvider, Program, BN, web3 } from '@coral-xyz/anchor';
 import * as spl from '@solana/spl-token';
 import { DephyRewards } from '../target/types/dephy_rewards';
 import { readFileSync } from 'fs';
 import { buildRewardsTree } from "../tests/rewards-tree";
 import path from "path";
 import os from "os";
+import { getProvider } from './common';
 
-
-export function loadKey(filepath: string) {
-  return web3.Keypair.fromSecretKey(Uint8Array.from(JSON.parse(readFileSync(filepath, 'utf8'))));
-}
-
-export function getProvider(rpcUrl: string, keypairPath: string) {
-  const wallet = new Wallet(loadKey(keypairPath));
-  const connection = new web3.Connection(rpcUrl);
-  const provider = new AnchorProvider(connection, wallet, {});
-  anchor.setProvider(provider);
-  return provider;
-}
 
 const cli = new Command();
 
@@ -191,7 +180,7 @@ cli.command('claim-rewards')
       const rewardsStatePubkey = new web3.PublicKey(opts.state);
       const beneficiary = opts.beneficiary ? new web3.PublicKey(opts.beneficiary) : provider.publicKey;
       const rewards = JSON.parse(readFileSync(opts.rewards, 'utf8'));
-      const rewardsNodes: Parameters<typeof buildRewardsTree>[0] = rewards.map(({user, amount}) => ({
+      const rewardsNodes: Parameters<typeof buildRewardsTree>[0] = rewards.map(({ user, amount }) => ({
         user: new web3.PublicKey(user),
         amount: BigInt(amount)
       }));
@@ -201,7 +190,7 @@ cli.command('claim-rewards')
       }
 
       const rewardsTree = buildRewardsTree(rewardsNodes);
-      const index = rewardsNodes.findIndex(({user}) => user.equals(provider.publicKey));
+      const index = rewardsNodes.findIndex(({ user }) => user.equals(provider.publicKey));
       const proof = rewardsTree.getProof(index).proof.map(b => Array.from(b));
       const { user, amount } = rewardsNodes[index]
       console.log('rewards', user.toString(), amount)
@@ -270,7 +259,7 @@ cli.command('calc-rewards-root')
   .action(async (opts) => {
     try {
       const rewards = JSON.parse(readFileSync(opts.rewards, 'utf8'));
-      const rewardsNodes = rewards.map(({user, amount}) => ({
+      const rewardsNodes = rewards.map(({ user, amount }) => ({
         user: new web3.PublicKey(user),
         amount: BigInt(amount)
       }));

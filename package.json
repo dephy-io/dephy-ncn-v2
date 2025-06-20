@@ -3,22 +3,23 @@
   "type": "module",
   "scripts": {
     "dephy-ncn": "bun -b run scripts/cli.ts",
-    "dephy-rewards": "bun -b run scripts/rewards_cli.ts"
+    "dephy-rewards": "bun -b run scripts/rewards_cli.ts",
+    "mock-operator": "bun -b run scripts/mock_operator.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1"
   },
   "devDependencies": {
-    "@codama/cli": "^1.1.0",
+    "@codama/cli": "^1.1.1",
     "@commander-js/extra-typings": "^13.1.0",
     "@solana/spl-token": "^0.4.13",
-    "@types/bn.js": "^5.1.6",
-    "@types/bun": "^1.2.13",
+    "@types/bn.js": "^5.2.0",
+    "@types/bun": "^1.2.16",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.10",
     "chai": "^5.2.0",
     "js-sha3": "^0.9.3",
-    "mocha": "^11.2.2",
+    "mocha": "^11.7.0",
     "ts-mocha": "^11.1.0",
     "typescript": "^5.8.3",
     "typescript-collections": "^1.3.3"

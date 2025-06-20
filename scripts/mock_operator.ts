@@ -1,11 +1,11 @@
 import { vote } from './actions';
-import { getProvider } from './cli';
 import { Command } from '@commander-js/extra-typings';
 import * as anchor from '@coral-xyz/anchor';
 import { web3 } from '@coral-xyz/anchor';
 import { keccak_256 } from 'js-sha3';
 import { Program } from '@coral-xyz/anchor';
 import { DephyNcn } from '../target/types/dephy_ncn';
+import { getProvider } from './common';
 
 const cli = new Command();
 let dephyNcn: Program<DephyNcn>
@@ -62,7 +62,7 @@ cli
           console.log(`Detected new epoch: ${epoch}, voting...`);
           const mockedRoot = calcMockedRoot(epoch)
           const ballotBox = await fetchBallotBox(configPubkey, programId);
-          
+
           const currentRewardsRoot = Buffer.from(ballotBox.proposedRewardsRoot)
           if (!currentRewardsRoot.equals(mockedRoot)) {
             console.error('RewardsRoot not match', currentRewardsRoot, mockedRoot)
@@ -77,7 +77,7 @@ cli
           });
           lastVotedEpoch = epoch;
           console.log(`Voted for epoch ${epoch} ${rewardsRoot}`);
-            
+
         } catch (e) {
           console.error(`Vote failed:`, e);
         }
