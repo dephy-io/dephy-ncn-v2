@@ -64,8 +64,12 @@ cli
           const ballotBox = await fetchBallotBox(configPubkey, programId);
 
           const currentRewardsRoot = Buffer.from(ballotBox.proposedRewardsRoot)
-          if (!currentRewardsRoot.equals(mockedRoot)) {
-            console.error('RewardsRoot not match', currentRewardsRoot, mockedRoot)
+          if (ballotBox.epoch.eqn(epoch)) {
+            if (!currentRewardsRoot.equals(mockedRoot)) {
+              console.error('RewardsRoot not match', currentRewardsRoot, mockedRoot)
+            }
+          } else {
+            console.log('no one has voted yet')
           }
 
           const rewardsRoot = mockedRoot.toString('hex')
