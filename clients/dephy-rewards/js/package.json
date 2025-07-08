@@ -1,0 +1,9 @@
+{
+  "name": "dephy-rewards-client",
+  "version": "0.1.0",
+  "type": "module",
+  "module": "./src/index.ts",
+  "dependencies": {
+    "@solana/kit": "^2.1.1"
+  }
+}

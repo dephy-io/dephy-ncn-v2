@@ -34,11 +34,11 @@ const userKeypair = loadKey('./tests/fixtures/keys/user.json');
 const authority = web3.Keypair.generate();
 
 const jitoCli = ['jito-restaking-cli', '--rpc-url', 'http://127.0.0.1:8899']
-const jitoCliAdmin = [...jitoCli, '--keypair', './tests/fixtures/keys/jito-admin.json']
-const jitoCliVaultAdmin = [...jitoCli, '--keypair', './tests/fixtures/keys/vault-admin.json']
-const jitoCliOp0 = [...jitoCli, '--keypair', './tests/fixtures/keys/op0-admin.json']
-const jitoCliOp1 = [...jitoCli, '--keypair', './tests/fixtures/keys/op1-admin.json']
-const jitoCliUser = [...jitoCli, '--keypair', './tests/fixtures/keys/user.json']
+const jitoCliAdmin = [...jitoCli, '--signer', './tests/fixtures/keys/jito-admin.json']
+const jitoCliVaultAdmin = [...jitoCli, '--signer', './tests/fixtures/keys/vault-admin.json']
+const jitoCliOp0 = [...jitoCli, '--signer', './tests/fixtures/keys/op0-admin.json']
+const jitoCliOp1 = [...jitoCli, '--signer', './tests/fixtures/keys/op1-admin.json']
+const jitoCliUser = [...jitoCli, '--signer', './tests/fixtures/keys/user.json']
 
 describe("dephy-ncn", () => {
   const provider = anchor.AnchorProvider.env()
@@ -135,7 +135,7 @@ describe("dephy-ncn", () => {
 
     // <TOKEN_MINT> <DEPOSIT_FEE_BPS> <WITHDRAWAL_FEE_BPS> <REWARD_FEE_BPS> <DECIMALS> <INITIALIZE_TOKEN_AMOUNT>
     const initVaultOutput = await $`${jitoCliVaultAdmin} vault vault initialize ${vaultMintKeypair.publicKey} 0 0 0 6 1000000`
-    vaultPubkey = getInitializedAddress('Vault address', initVaultOutput);
+    vaultPubkey = getInitializedAddress('Initializing Vault at address', initVaultOutput);
   });
 
 
@@ -216,10 +216,10 @@ describe("dephy-ncn", () => {
   it("initialize operators", async () => {
     // initialize operators
     const op0Output = await $`${jitoCliOp0} restaking operator initialize 1000`
-    op0Pubkey = getInitializedAddress('Operator initialized at address', op0Output);
+    op0Pubkey = getInitializedAddress('Initializing Operator', op0Output);
 
     const op1Output = await $`${jitoCliOp1} restaking operator initialize 2000`
-    op1Pubkey = getInitializedAddress('Operator initialized at address', op1Output);
+    op1Pubkey = getInitializedAddress('Initializing Operator', op1Output);
 
     // operators connect to vault
     await $`${jitoCliOp0} restaking operator initialize-operator-vault-ticket ${op0Pubkey} ${vaultPubkey}`

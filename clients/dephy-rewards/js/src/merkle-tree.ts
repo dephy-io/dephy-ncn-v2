@@ -1,9 +1,10 @@
-import { PublicKey } from '@solana/web3.js';
+import { Address, getAddressCodec } from '@solana/kit';
 import * as Collections from 'typescript-collections';
 import { keccak_256 } from 'js-sha3';
 
 const CACHE_EMPTY_NODE = new Map<number, Buffer>();
 export const LEAF_BUFFER_LENGTH = 32;
+const addressCodec = getAddressCodec()
 
 export type MerkleTreeProof = {
     leaf: Buffer;
@@ -151,14 +152,15 @@ export class MerkleTree {
     static hashProof(merkleTreeProof: MerkleTreeProof, verbose = false): Buffer {
         const { leaf, leafIndex, proof } = merkleTreeProof;
 
-        let node = new PublicKey(leaf).toBuffer();
+        const leafAddress = addressCodec.decode(leaf);
+        let node = Buffer.from(addressCodec.encode(leafAddress));
         for (let i = 0; i < proof.length; i++) {
             if ((leafIndex >> i) % 2 === 0) {
-                node = hash(node, new PublicKey(proof[i]).toBuffer());
+                node = hash(node, Buffer.from(addressCodec.encode(addressCodec.decode(proof[i]))));
             } else {
-                node = hash(new PublicKey(proof[i]).toBuffer(), node);
+                node = hash(Buffer.from(addressCodec.encode(addressCodec.decode(proof[i]))), node);
             }
-            if (verbose) console.log(`node ${i} ${new PublicKey(node).toString()}`);
+            if (verbose) console.log(`node ${i} ${leafAddress}`);
         }
         return node;
     }
@@ -172,8 +174,8 @@ export class MerkleTree {
      */
     static verify(root: Buffer, merkleTreeProof: MerkleTreeProof, verbose = false): boolean {
         const node = MerkleTree.hashProof(merkleTreeProof, verbose);
-        const rehashed = new PublicKey(node).toString();
-        const received = new PublicKey(root).toString();
+        const rehashed = addressCodec.decode(node);
+        const received = addressCodec.decode(root);
         if (rehashed !== received) {
             if (verbose) console.log(`Roots don't match! Expected ${rehashed} got ${received}`);
             return false;
