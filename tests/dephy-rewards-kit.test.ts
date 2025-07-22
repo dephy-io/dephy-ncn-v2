@@ -182,6 +182,7 @@ describe("dephy-rewards with solana kit", () => {
         payer,
         owner: user.address,
         mint: rewardsMintKeypair.address,
+        tokenProgram: splToken.TOKEN_2022_PROGRAM_ADDRESS,
       }),
       await dephyRewards.getClaimRewardsInstructionAsync({
         rewardsState: rewardsStateKeypair.address,
@@ -197,15 +198,16 @@ describe("dephy-rewards with solana kit", () => {
       })
     ])
 
+    console.log("Claim rewards transaction signature", tx)
+
     const [claimStateAddress] = await dephyRewards.findClaimStatePda({
       rewardsState: rewardsStateKeypair.address,
       user: user.address,
     })
 
-    console.log("Claim rewards transaction signature", tx)
-
     // Verify the claim state
-    const claimStateAccount = await dephyRewards.fetchClaimState(rpc, claimStateAddress)
+    const claimStateAccount = await dephyRewards.fetchMaybeClaimState(rpc, claimStateAddress)
+    assert(claimStateAccount.exists)
     assert.equal(claimStateAccount.data.owner, user.address, "Claim state owner is incorrect")
     assert.equal(claimStateAccount.data.claimedRewards, rewardsToClaim)
 

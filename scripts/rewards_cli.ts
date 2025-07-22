@@ -8,6 +8,8 @@ import { buildRewardsTree } from "../tests/rewards-tree";
 import path from "path";
 import os from "os";
 import { getProvider } from './common';
+import { getClaimRewardsInstructionDataDecoder, hashNode, MerkleTree } from '../clients/dephy-rewards/js/src';
+import * as gill from 'gill'
 
 
 const cli = new Command();
@@ -57,6 +59,20 @@ cli.command('initialize-rewards-state')
       console.error('Failed to initialize rewards state:', err);
     }
   });
+
+cli.command('get-rewards-state')
+  .description('Get the rewards state')
+  .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
+  .action(async (opts) => {
+    try {
+      const statePubkey = new web3.PublicKey(opts.state);
+      const rewardsState = await dephyRewards.account.rewardsState.fetch(statePubkey);
+      console.dir(rewardsState, { depth: null })
+    } catch (err) {
+      console.error('Failed to get rewards state:', err);
+    }
+  });
+
 
 cli.command('update-merkle-root')
   .description('Update the merkle root for rewards distribution')
@@ -273,6 +289,37 @@ cli.command('calc-rewards-root')
       console.log('Rewards root:', rewardsRoot.toHex());
     } catch (err) {
       console.error('Failed to calculate rewards root:', err);
+    }
+  });
+
+
+cli.command('check-proof-data')
+  .description('Check the merkle root for rewards distribution')
+  .requiredOption('--owner <owner>', 'Owner account pubkey')
+  .requiredOption('--data <data>', 'Tx Data to check')
+  .action(async (opts) => {
+    try {
+      const ownerPubkey = gill.address(opts.owner);
+      const data = Buffer.from(opts.data, 'hex');
+      const decodedData = getClaimRewardsInstructionDataDecoder().decode(data);
+
+      console.dir(decodedData, { depth: null })
+
+      const leaf = hashNode({
+        user: ownerPubkey,
+        amount: decodedData.totalRewards,
+      })
+
+      const computedRoot = MerkleTree.hashProof({
+        leaf,
+        leafIndex: decodedData.index,
+        proof: decodedData.proof.map(p => Buffer.from(p)),
+        root: null
+      })
+
+      console.log('computedRoot', computedRoot.toHex())
+    } catch (err) {
+      console.error('Failed to check merkle root:', err);
     }
   });
 
