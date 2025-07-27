@@ -16,6 +16,7 @@ import {
 import {
   type ParsedClaimRewardsInstruction,
   type ParsedInitializeRewardsStateInstruction,
+  type ParsedUpdateAuthorityInstruction,
   type ParsedUpdateMerkleRootInstruction,
 } from '../instructions';
 
@@ -61,6 +62,7 @@ export function identifyDephyRewardsAccount(
 export enum DephyRewardsInstruction {
   ClaimRewards,
   InitializeRewardsState,
+  UpdateAuthority,
   UpdateMerkleRoot,
 }
 
@@ -94,6 +96,17 @@ export function identifyDephyRewardsInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([32, 46, 64, 28, 149, 75, 243, 88])
+      ),
+      0
+    )
+  ) {
+    return DephyRewardsInstruction.UpdateAuthority;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([195, 173, 38, 60, 242, 203, 158, 93])
       ),
       0
@@ -115,6 +128,9 @@ export type ParsedDephyRewardsInstruction<
   | ({
       instructionType: DephyRewardsInstruction.InitializeRewardsState;
     } & ParsedInitializeRewardsStateInstruction<TProgram>)
+  | ({
+      instructionType: DephyRewardsInstruction.UpdateAuthority;
+    } & ParsedUpdateAuthorityInstruction<TProgram>)
   | ({
       instructionType: DephyRewardsInstruction.UpdateMerkleRoot;
     } & ParsedUpdateMerkleRootInstruction<TProgram>);

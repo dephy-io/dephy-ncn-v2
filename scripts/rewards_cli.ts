@@ -17,6 +17,14 @@ const cli = new Command();
 let provider: AnchorProvider;
 let dephyRewards: Program<DephyRewards>;
 
+const logRewardsState = (rewardsState: Awaited<ReturnType<typeof dephyRewards.account.rewardsState.all>>[number]) => {
+  console.log('Rewards State:', rewardsState.publicKey.toString())
+  console.log('Authority:', rewardsState.account.authority.toString())
+  console.log('Rewards Mint:', rewardsState.account.rewardsMint.toString())
+  console.log('Rewards Token Account:', rewardsState.account.rewardsTokenAccount.toString())
+  console.log('Merkle Root:', rewardsState.account.merkleRoot)
+}
+
 
 cli
   .name('dephy-rewards-cli')
@@ -35,17 +43,19 @@ cli
 cli.command('initialize-rewards-state')
   .description('Initialize the rewards state')
   .requiredOption('-m, --mint <pubkey>', 'Rewards mint account pubkey')
+  .option('-a, --authority <pubkey>', 'Authority account pubkey')
   .action(async (opts) => {
     try {
       const mintPubkey = new web3.PublicKey(opts.mint);
       const stateKeypair = web3.Keypair.generate();
       const mintAccount = await provider.connection.getAccountInfo(mintPubkey);
+      const authorityPubkey = opts.authority ? new web3.PublicKey(opts.authority) : provider.publicKey;
 
       const tx = await dephyRewards.methods
         .initializeRewardsState()
         .accounts({
           rewardsState: stateKeypair.publicKey,
-          authority: provider.publicKey,
+          authority: authorityPubkey,
           rewardsMint: mintPubkey,
           payer: provider.publicKey,
           rewardsTokenProgram: mintAccount.owner,
@@ -60,6 +70,19 @@ cli.command('initialize-rewards-state')
     }
   });
 
+cli.command('all-rewards-states')
+  .description('Get all rewards states')
+  .action(async () => {
+    try {
+      const rewardsStates = await dephyRewards.account.rewardsState.all();
+      rewardsStates.forEach((rewardsState) => {
+        logRewardsState(rewardsState)
+      })
+    } catch (err) {
+      console.error('Failed to get rewards states:', err);
+    }
+  });
+
 cli.command('get-rewards-state')
   .description('Get the rewards state')
   .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
@@ -67,9 +90,35 @@ cli.command('get-rewards-state')
     try {
       const statePubkey = new web3.PublicKey(opts.state);
       const rewardsState = await dephyRewards.account.rewardsState.fetch(statePubkey);
-      console.dir(rewardsState, { depth: null })
+      logRewardsState({ publicKey: statePubkey, account: rewardsState })
     } catch (err) {
       console.error('Failed to get rewards state:', err);
+    }
+  });
+
+cli.command('update-authority')
+  .description('Update the authority for rewards distribution')
+  .requiredOption('-s, --state <pubkey>', 'Rewards state account pubkey')
+  .requiredOption('-n, --new-authority <pubkey>', 'New authority account pubkey')
+  .action(async (opts) => {
+    try {
+      const statePubkey = new web3.PublicKey(opts.state);
+      const newAuthorityPubkey = new web3.PublicKey(opts.newAuthority);
+
+      const tx = await dephyRewards.methods
+        .updateAuthority()
+        .accounts({
+          rewardsState: statePubkey,
+          authority: provider.publicKey,
+          newAuthority: newAuthorityPubkey,
+        })
+        .signers([provider.wallet.payer])
+        .rpc();
+
+      console.log('Authority updated');
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to update authority:', err);
     }
   });
 

@@ -244,4 +244,21 @@ describe("dephy-rewards with solana kit", () => {
     })
   })
 
+
+  it('update authority', async () => {
+    const newAuthority = await generateKeyPairSigner()
+    const tx = await sendAndConfirmIxs([
+      dephyRewards.getUpdateAuthorityInstruction({
+        rewardsState: rewardsStateKeypair.address,
+        authority: authority,
+        newAuthority: newAuthority.address,
+      })
+    ])
+
+    console.log("Update authority transaction signature", tx)
+
+    const rewardsState = await dephyRewards.fetchRewardsState(rpc, rewardsStateKeypair.address)
+    assert.equal(rewardsState.data.authority, newAuthority.address)
+  })
+
 })

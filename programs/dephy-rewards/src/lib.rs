@@ -25,6 +25,13 @@ pub mod dephy_rewards {
         Ok(())
     }
 
+    pub fn update_authority(ctx: Context<UpdateAuthority>) -> Result<()> {
+        let rewards_state = &mut ctx.accounts.rewards_state;
+        rewards_state.authority = ctx.accounts.new_authority.key();
+
+        Ok(())
+    }
+
     pub fn claim_rewards(ctx: Context<ClaimRewards>, args: ClaimRewardsArgs) -> Result<()> {
         let leaf = keccak::hashv(&[
             ctx.accounts.owner.key().as_ref(),
@@ -117,6 +124,16 @@ pub struct UpdateMerkleRoot<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct UpdateMerkleRootArgs {
     merkle_root: MerkleRoot,
+}
+
+#[derive(Accounts)]
+pub struct UpdateAuthority<'info> {
+    #[account(mut)]
+    pub rewards_state: Account<'info, RewardsState>,
+    #[account(address = rewards_state.authority @ DephyRewardsError::InvalidAuthority)]
+    pub authority: Signer<'info>,
+    /// CHECK: new authority
+    pub new_authority: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
