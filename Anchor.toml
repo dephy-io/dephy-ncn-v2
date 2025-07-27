@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-dephy_rewards = "BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9"
-dephy_ncn = "3AGd4bShjwtx7vNJHJowU6UmRdrjqrchL1Zu8smph5pk"
+dephy_ncn = "pHyCaXaueyjEh3RAN4Anrfp1iGkBwPdod8ACVKC2B3X"
+dephy_rewards = "PHYRvUPmU31VoVgoiK9RRgwtKTnejV5v4QfBvvXXTmV"
 
 [registry]
 url = "https://api.apr.dev"

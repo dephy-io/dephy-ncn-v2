@@ -9,7 +9,7 @@ use anchor_lang::prelude::*;
 
 pub use instructions::*;
 
-declare_id!("3AGd4bShjwtx7vNJHJowU6UmRdrjqrchL1Zu8smph5pk");
+declare_id!("pHyCaXaueyjEh3RAN4Anrfp1iGkBwPdod8ACVKC2B3X");
 
 #[program]
 pub mod dephy_ncn {

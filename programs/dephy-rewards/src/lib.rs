@@ -3,7 +3,7 @@
 use anchor_lang::{prelude::*, solana_program::keccak};
 use anchor_spl::{associated_token::AssociatedToken, token_interface::{Mint, TokenAccount, TokenInterface}};
 
-declare_id!("BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9");
+declare_id!("PHYRvUPmU31VoVgoiK9RRgwtKTnejV5v4QfBvvXXTmV");
 
 #[program]
 pub mod dephy_rewards {

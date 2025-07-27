@@ -22,7 +22,7 @@ import {
 } from '../instructions';
 
 export const DEPHY_REWARDS_PROGRAM_ADDRESS =
-  'BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9' as Address<'BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9'>;
+  'PHYRvUPmU31VoVgoiK9RRgwtKTnejV5v4QfBvvXXTmV' as Address<'PHYRvUPmU31VoVgoiK9RRgwtKTnejV5v4QfBvvXXTmV'>;
 
 export enum DephyRewardsAccount {
   ClaimState,
@@ -145,7 +145,7 @@ export function identifyDephyRewardsInstruction(
 }
 
 export type ParsedDephyRewardsInstruction<
-  TProgram extends string = 'BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9',
+  TProgram extends string = 'PHYRvUPmU31VoVgoiK9RRgwtKTnejV5v4QfBvvXXTmV',
 > =
   | ({
       instructionType: DephyRewardsInstruction.ClaimRewards;
