@@ -7,4 +7,5 @@
  */
 
 export * from './claimState';
+export * from './globalConfig';
 export * from './rewardsState';

@@ -7,6 +7,7 @@
  */
 
 export * from './claimRewards';
+export * from './initialize';
 export * from './initializeRewardsState';
 export * from './updateAuthority';
 export * from './updateMerkleRoot';

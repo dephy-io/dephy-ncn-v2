@@ -40,6 +40,32 @@ cli
     }
   });
 
+
+cli
+  .command('initialize-global-config')
+  .description('Initialize the global config')
+  .option('-a, --admin <pubkey>', 'Admin account pubkey')
+  .action(async (opts) => {
+    try {
+      const adminPubkey = opts.admin ? new web3.PublicKey(opts.admin) : provider.publicKey;
+
+      const tx = await dephyRewards.methods
+        .initialize()
+        .accounts({
+          admin: adminPubkey,
+          payer: provider.publicKey,
+        })
+        .signers([provider.wallet.payer])
+        .rpc();
+
+      console.log('Global config initialized');
+      console.log('Transaction signature:', tx);
+    } catch (err) {
+      console.error('Failed to initialize global config:', err);
+    }
+  });
+
+
 cli.command('initialize-rewards-state')
   .description('Initialize the rewards state')
   .requiredOption('-m, --mint <pubkey>', 'Rewards mint account pubkey')

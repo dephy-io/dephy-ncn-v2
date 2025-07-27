@@ -15,6 +15,7 @@ import {
 } from '@solana/kit';
 import {
   type ParsedClaimRewardsInstruction,
+  type ParsedInitializeInstruction,
   type ParsedInitializeRewardsStateInstruction,
   type ParsedUpdateAuthorityInstruction,
   type ParsedUpdateMerkleRootInstruction,
@@ -25,6 +26,7 @@ export const DEPHY_REWARDS_PROGRAM_ADDRESS =
 
 export enum DephyRewardsAccount {
   ClaimState,
+  GlobalConfig,
   RewardsState,
 }
 
@@ -47,6 +49,17 @@ export function identifyDephyRewardsAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([149, 8, 156, 202, 160, 252, 176, 217])
+      ),
+      0
+    )
+  ) {
+    return DephyRewardsAccount.GlobalConfig;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([155, 23, 165, 17, 31, 127, 88, 135])
       ),
       0
@@ -61,6 +74,7 @@ export function identifyDephyRewardsAccount(
 
 export enum DephyRewardsInstruction {
   ClaimRewards,
+  Initialize,
   InitializeRewardsState,
   UpdateAuthority,
   UpdateMerkleRoot,
@@ -80,6 +94,17 @@ export function identifyDephyRewardsInstruction(
     )
   ) {
     return DephyRewardsInstruction.ClaimRewards;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237])
+      ),
+      0
+    )
+  ) {
+    return DephyRewardsInstruction.Initialize;
   }
   if (
     containsBytes(
@@ -125,6 +150,9 @@ export type ParsedDephyRewardsInstruction<
   | ({
       instructionType: DephyRewardsInstruction.ClaimRewards;
     } & ParsedClaimRewardsInstruction<TProgram>)
+  | ({
+      instructionType: DephyRewardsInstruction.Initialize;
+    } & ParsedInitializeInstruction<TProgram>)
   | ({
       instructionType: DephyRewardsInstruction.InitializeRewardsState;
     } & ParsedInitializeRewardsStateInstruction<TProgram>)

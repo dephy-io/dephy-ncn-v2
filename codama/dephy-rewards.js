@@ -8,6 +8,11 @@ import {
 
 export const pdas = addPdasVisitor({
   dephyRewards: [{
+    name: 'globalConfig',
+    seeds: [
+      constantPdaSeedNodeFromString('utf8', "global_config"),
+    ]
+  }, {
     name: 'rewardsVault',
     seeds: [
       constantPdaSeedNodeFromString('utf8', "rewards_vault"),

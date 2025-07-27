@@ -102,6 +102,26 @@ describe("dephy-rewards with solana kit", () => {
     )
   })
 
+
+  let admin: KeyPairSigner
+  it('initialize global config', async () => {
+    admin = await generateKeyPairSigner()
+    const globalConfigPda = await dephyRewards.findGlobalConfigPda()
+
+    const tx = await sendAndConfirmIxs([
+      await dephyRewards.getInitializeInstructionAsync({
+        admin,
+        payer,
+      })
+    ])
+
+    console.log("Initialize global config transaction signature", tx)
+
+    const globalConfig = await dephyRewards.fetchGlobalConfig(rpc, globalConfigPda[0])
+    assert.equal(globalConfig.data.admin, admin.address)
+  })
+
+
   it("initialize rewards state", async () => {
     const tx = await sendAndConfirmIxs([
       await dephyRewards.getInitializeRewardsStateInstructionAsync({
@@ -248,9 +268,9 @@ describe("dephy-rewards with solana kit", () => {
   it('update authority', async () => {
     const newAuthority = await generateKeyPairSigner()
     const tx = await sendAndConfirmIxs([
-      dephyRewards.getUpdateAuthorityInstruction({
+      await dephyRewards.getUpdateAuthorityInstructionAsync({
         rewardsState: rewardsStateKeypair.address,
-        authority: authority,
+        authority: admin,
         newAuthority: newAuthority.address,
       })
     ])

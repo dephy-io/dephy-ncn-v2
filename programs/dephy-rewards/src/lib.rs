@@ -9,6 +9,13 @@ declare_id!("BEQB5zna1N4eXTGPLdAVG9HJ1bL8rXSMrR7FdycJ6Zd9");
 pub mod dephy_rewards {
     use super::*;
 
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        let global_config = &mut ctx.accounts.global_config;
+        global_config.admin = ctx.accounts.admin.key();
+
+        Ok(())
+    }
+
     pub fn initialize_rewards_state(ctx: Context<InitializeRewardsState>) -> Result<()> {
         let rewards_state = &mut ctx.accounts.rewards_state;
         rewards_state.authority = ctx.accounts.authority.key();
@@ -27,6 +34,13 @@ pub mod dephy_rewards {
 
     pub fn update_authority(ctx: Context<UpdateAuthority>) -> Result<()> {
         let rewards_state = &mut ctx.accounts.rewards_state;
+        let global_config = &ctx.accounts.global_config;
+        if global_config.admin != ctx.accounts.authority.key() {
+            if rewards_state.authority != ctx.accounts.authority.key() {
+                return Err(DephyRewardsError::InvalidAuthority.into());
+            }
+        }
+
         rewards_state.authority = ctx.accounts.new_authority.key();
 
         Ok(())
@@ -89,6 +103,21 @@ pub mod dephy_rewards {
     }
 }
 
+
+#[derive(Accounts)]
+pub struct Initialize<'info> {
+    #[account(
+        init, payer = payer, space = GlobalConfig::DISCRIMINATOR.len() + GlobalConfig::INIT_SPACE,
+        seeds = [b"global_config"], bump
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
+    pub admin: Signer<'info>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+
 #[derive(Accounts)]
 pub struct InitializeRewardsState<'info> {
     #[account(init, payer = payer, space = RewardsState::DISCRIMINATOR.len() + RewardsState::INIT_SPACE)]
@@ -128,10 +157,11 @@ pub struct UpdateMerkleRootArgs {
 
 #[derive(Accounts)]
 pub struct UpdateAuthority<'info> {
+    #[account(seeds = [b"global_config"], bump)]
+    pub global_config: Account<'info, GlobalConfig>,
+    pub authority: Signer<'info>,
     #[account(mut)]
     pub rewards_state: Account<'info, RewardsState>,
-    #[account(address = rewards_state.authority @ DephyRewardsError::InvalidAuthority)]
-    pub authority: Signer<'info>,
     /// CHECK: new authority
     pub new_authority: AccountInfo<'info>,
 }
@@ -181,6 +211,12 @@ pub enum MerkleRoot {
         pubkey: Pubkey,
         offset: u64,
     }
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct GlobalConfig {
+    pub admin: Pubkey,
 }
 
 #[account]

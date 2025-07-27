@@ -12,6 +12,7 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   transformEncoder,
@@ -45,21 +46,25 @@ export function getUpdateAuthorityDiscriminatorBytes() {
 
 export type UpdateAuthorityInstruction<
   TProgram extends string = typeof DEPHY_REWARDS_PROGRAM_ADDRESS,
-  TAccountRewardsState extends string | IAccountMeta<string> = string,
+  TAccountGlobalConfig extends string | IAccountMeta<string> = string,
   TAccountAuthority extends string | IAccountMeta<string> = string,
+  TAccountRewardsState extends string | IAccountMeta<string> = string,
   TAccountNewAuthority extends string | IAccountMeta<string> = string,
   TRemainingAccounts extends readonly IAccountMeta<string>[] = [],
 > = IInstruction<TProgram> &
   IInstructionWithData<Uint8Array> &
   IInstructionWithAccounts<
     [
-      TAccountRewardsState extends string
-        ? WritableAccount<TAccountRewardsState>
-        : TAccountRewardsState,
+      TAccountGlobalConfig extends string
+        ? ReadonlyAccount<TAccountGlobalConfig>
+        : TAccountGlobalConfig,
       TAccountAuthority extends string
         ? ReadonlySignerAccount<TAccountAuthority> &
             IAccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
+      TAccountRewardsState extends string
+        ? WritableAccount<TAccountRewardsState>
+        : TAccountRewardsState,
       TAccountNewAuthority extends string
         ? ReadonlyAccount<TAccountNewAuthority>
         : TAccountNewAuthority,
@@ -96,32 +101,123 @@ export function getUpdateAuthorityInstructionDataCodec(): Codec<
   );
 }
 
-export type UpdateAuthorityInput<
-  TAccountRewardsState extends string = string,
+export type UpdateAuthorityAsyncInput<
+  TAccountGlobalConfig extends string = string,
   TAccountAuthority extends string = string,
+  TAccountRewardsState extends string = string,
   TAccountNewAuthority extends string = string,
 > = {
-  rewardsState: Address<TAccountRewardsState>;
+  globalConfig?: Address<TAccountGlobalConfig>;
   authority: TransactionSigner<TAccountAuthority>;
+  rewardsState: Address<TAccountRewardsState>;
+  newAuthority: Address<TAccountNewAuthority>;
+};
+
+export async function getUpdateAuthorityInstructionAsync<
+  TAccountGlobalConfig extends string,
+  TAccountAuthority extends string,
+  TAccountRewardsState extends string,
+  TAccountNewAuthority extends string,
+  TProgramAddress extends Address = typeof DEPHY_REWARDS_PROGRAM_ADDRESS,
+>(
+  input: UpdateAuthorityAsyncInput<
+    TAccountGlobalConfig,
+    TAccountAuthority,
+    TAccountRewardsState,
+    TAccountNewAuthority
+  >,
+  config?: { programAddress?: TProgramAddress }
+): Promise<
+  UpdateAuthorityInstruction<
+    TProgramAddress,
+    TAccountGlobalConfig,
+    TAccountAuthority,
+    TAccountRewardsState,
+    TAccountNewAuthority
+  >
+> {
+  // Program address.
+  const programAddress =
+    config?.programAddress ?? DEPHY_REWARDS_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isWritable: false },
+    rewardsState: { value: input.rewardsState ?? null, isWritable: true },
+    newAuthority: { value: input.newAuthority ?? null, isWritable: false },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedAccount
+  >;
+
+  // Resolve default values.
+  if (!accounts.globalConfig.value) {
+    accounts.globalConfig.value = await getProgramDerivedAddress({
+      programAddress,
+      seeds: [
+        getBytesEncoder().encode(
+          new Uint8Array([
+            103, 108, 111, 98, 97, 108, 95, 99, 111, 110, 102, 105, 103,
+          ])
+        ),
+      ],
+    });
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
+  const instruction = {
+    accounts: [
+      getAccountMeta(accounts.globalConfig),
+      getAccountMeta(accounts.authority),
+      getAccountMeta(accounts.rewardsState),
+      getAccountMeta(accounts.newAuthority),
+    ],
+    programAddress,
+    data: getUpdateAuthorityInstructionDataEncoder().encode({}),
+  } as UpdateAuthorityInstruction<
+    TProgramAddress,
+    TAccountGlobalConfig,
+    TAccountAuthority,
+    TAccountRewardsState,
+    TAccountNewAuthority
+  >;
+
+  return instruction;
+}
+
+export type UpdateAuthorityInput<
+  TAccountGlobalConfig extends string = string,
+  TAccountAuthority extends string = string,
+  TAccountRewardsState extends string = string,
+  TAccountNewAuthority extends string = string,
+> = {
+  globalConfig: Address<TAccountGlobalConfig>;
+  authority: TransactionSigner<TAccountAuthority>;
+  rewardsState: Address<TAccountRewardsState>;
   newAuthority: Address<TAccountNewAuthority>;
 };
 
 export function getUpdateAuthorityInstruction<
-  TAccountRewardsState extends string,
+  TAccountGlobalConfig extends string,
   TAccountAuthority extends string,
+  TAccountRewardsState extends string,
   TAccountNewAuthority extends string,
   TProgramAddress extends Address = typeof DEPHY_REWARDS_PROGRAM_ADDRESS,
 >(
   input: UpdateAuthorityInput<
-    TAccountRewardsState,
+    TAccountGlobalConfig,
     TAccountAuthority,
+    TAccountRewardsState,
     TAccountNewAuthority
   >,
   config?: { programAddress?: TProgramAddress }
 ): UpdateAuthorityInstruction<
   TProgramAddress,
-  TAccountRewardsState,
+  TAccountGlobalConfig,
   TAccountAuthority,
+  TAccountRewardsState,
   TAccountNewAuthority
 > {
   // Program address.
@@ -130,8 +226,9 @@ export function getUpdateAuthorityInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    rewardsState: { value: input.rewardsState ?? null, isWritable: true },
+    globalConfig: { value: input.globalConfig ?? null, isWritable: false },
     authority: { value: input.authority ?? null, isWritable: false },
+    rewardsState: { value: input.rewardsState ?? null, isWritable: true },
     newAuthority: { value: input.newAuthority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -142,16 +239,18 @@ export function getUpdateAuthorityInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, 'programId');
   const instruction = {
     accounts: [
-      getAccountMeta(accounts.rewardsState),
+      getAccountMeta(accounts.globalConfig),
       getAccountMeta(accounts.authority),
+      getAccountMeta(accounts.rewardsState),
       getAccountMeta(accounts.newAuthority),
     ],
     programAddress,
     data: getUpdateAuthorityInstructionDataEncoder().encode({}),
   } as UpdateAuthorityInstruction<
     TProgramAddress,
-    TAccountRewardsState,
+    TAccountGlobalConfig,
     TAccountAuthority,
+    TAccountRewardsState,
     TAccountNewAuthority
   >;
 
@@ -164,9 +263,10 @@ export type ParsedUpdateAuthorityInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    rewardsState: TAccountMetas[0];
+    globalConfig: TAccountMetas[0];
     authority: TAccountMetas[1];
-    newAuthority: TAccountMetas[2];
+    rewardsState: TAccountMetas[2];
+    newAuthority: TAccountMetas[3];
   };
   data: UpdateAuthorityInstructionData;
 };
@@ -179,7 +279,7 @@ export function parseUpdateAuthorityInstruction<
     IInstructionWithAccounts<TAccountMetas> &
     IInstructionWithData<Uint8Array>
 ): ParsedUpdateAuthorityInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 4) {
     // TODO: Coded error.
     throw new Error('Not enough accounts');
   }
@@ -192,8 +292,9 @@ export function parseUpdateAuthorityInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      rewardsState: getNextAccount(),
+      globalConfig: getNextAccount(),
       authority: getNextAccount(),
+      rewardsState: getNextAccount(),
       newAuthority: getNextAccount(),
     },
     data: getUpdateAuthorityInstructionDataDecoder().decode(instruction.data),
